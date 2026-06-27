@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Lenis from "lenis";
 
 const DESKTOP_FRAMES_COUNT = 166;
 const MOBILE_FRAMES_COUNT = 56; // 1/3 of desktop frames to prevent mobile memory crashes
@@ -240,6 +241,37 @@ export default function TurnaroundHero() {
     targetProgressRef.current = prog;
   }, []);
 
+  // Initialize Lenis smooth scroll
+  useEffect(() => {
+    if (!hasMounted) return;
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutQuart
+      smoothWheel: true,
+      syncTouch: true, // Enable smooth scrolling sync on touch devices/mobile
+      touchMultiplier: 1.5,
+    });
+
+    let rafId = 0;
+    const raf = (time: number) => {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    };
+
+    rafId = requestAnimationFrame(raf);
+
+    // Update progress on Lenis scroll events
+    lenis.on("scroll", () => {
+      updateTargetProgress();
+    });
+
+    return () => {
+      lenis.destroy();
+      cancelAnimationFrame(rafId);
+    };
+  }, [hasMounted, updateTargetProgress]);
+
   // Scroll and Resize Event Listeners
   useEffect(() => {
     const onScroll = () => {
@@ -270,8 +302,10 @@ export default function TurnaroundHero() {
       if (prefersReducedMotion) {
         smoothProgressRef.current = target;
       } else {
+        // Since Lenis already smooths the scroll input, we use a much faster interpolation factor
+        // (0.28 instead of 0.07) to keep the 3D turntable snappy, responsive, and lag-free.
         if (Math.abs(diff) > 0.0001) {
-          smoothProgressRef.current += diff * 0.07;
+          smoothProgressRef.current += diff * 0.28;
         } else {
           smoothProgressRef.current = target;
         }
