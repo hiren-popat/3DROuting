@@ -1,0 +1,2 @@
+-Always Use 
+- tailwind-4-docs,web-design-guidelines,ui-ux-pro-max skills for these project
